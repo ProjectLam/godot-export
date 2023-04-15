@@ -98,7 +98,11 @@ async function downloadExecutable(): Promise<void> {
 async function prepareExecutable(): Promise<void> {
   const zipFile = path.join(GODOT_WORKING_PATH, GODOT_ZIP);
   const zipTo = path.join(GODOT_WORKING_PATH, GODOT_EXECUTABLE);
-  await exec('7z', ['x', zipFile, `-o${zipTo}`, '-y']);
+  if (GODOT_DOWNLOAD_URL.endsWith('.tar.gz')) {
+    await exec('tar', ['-zxvf', zipFile, `--one-top-level=${zipTo}`]);
+  } else {
+    await exec('7z', ['x', zipFile, `-o${zipTo}`, '-y']);
+  }
   const executablePath = findGodotExecutablePath(zipTo);
   if (!executablePath) {
     throw new Error('Could not find Godot executable');
@@ -237,7 +241,8 @@ function findGodotExecutablePath(basePath: string): string | undefined {
     const fullPath = path.join(basePath, subPath);
     const stats = fs.statSync(fullPath);
     // || path.basename === 'Godot' && process.platform === 'darwin';
-    const isLinux = stats.isFile() && (path.extname(fullPath) === '.64' || path.extname(fullPath) === '.x86_64');
+    const isLinux = stats.isFile() && fullPath.endsWith('.editor.64') || fullPath.endsWith('.editor.x86_64');
+    // TODO : change for mac later.
     const isMac = stats.isDirectory() && path.extname(fullPath) === '.app' && process.platform === 'darwin';
     if (isLinux) {
       return fullPath;
